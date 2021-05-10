@@ -31,15 +31,19 @@ namespace Web.Services
         /// Returns basket items count. (Returns 0 if basket does not exist.)
         /// </summary>
         /// <returns>The number of items in the basket</returns>
-        public async Task<BasketItemsCountViewModel> GetBasketItemsCountViewModel()
+        public async Task<BasketItemsCountViewModel> GetBasketItemsCountViewModel(int? basketId = null)
         {
-            string buyerId = GetBuyerId();
             var vm = new BasketItemsCountViewModel();
-            if (buyerId == null) return vm;
-            var spec = new BasketSpecification(buyerId);
-            var basket = await _basketRepository.FirstOrDefaultAsync(spec);
-            if (basket == null) return vm;
-            vm.BasketItemsCount = await _basketService.BasketItemsCount(basket.Id);
+            if (!basketId.HasValue)
+            {
+                string buyerId = GetBuyerId();
+                if (buyerId == null) return vm;
+                var spec = new BasketSpecification(buyerId);
+                var basket = await _basketRepository.FirstOrDefaultAsync(spec);
+                if (basket == null) return vm;
+                basketId = basket.Id;
+            }
+            vm.BasketItemsCount = await _basketService.BasketItemsCount(basketId.Value);
             return vm;
         }
 
