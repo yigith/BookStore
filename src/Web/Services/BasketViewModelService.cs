@@ -27,12 +27,20 @@ namespace Web.Services
             _productRepository = productRepository;
         }
 
-        public async Task<BasketItemsCountViewModel> GetBasketItemsCountViewModel(int basketId)
+        /// <summary>
+        /// Returns basket items count. (Returns 0 if basket does not exist.)
+        /// </summary>
+        /// <returns>The number of items in the basket</returns>
+        public async Task<BasketItemsCountViewModel> GetBasketItemsCountViewModel()
         {
-            return new BasketItemsCountViewModel()
-            {
-                BasketItemsCount = await _basketService.BasketItemsCount(basketId)
-            };
+            string buyerId = GetBuyerId();
+            var vm = new BasketItemsCountViewModel();
+            if (buyerId == null) return vm;
+            var spec = new BasketSpecification(buyerId);
+            var basket = await _basketRepository.FirstOrDefaultAsync(spec);
+            if (basket == null) return vm;
+            vm.BasketItemsCount = await _basketService.BasketItemsCount(basket.Id);
+            return vm;
         }
 
         public async Task<BasketViewModel> GetBasketViewModel()
@@ -65,6 +73,14 @@ namespace Web.Services
                 BuyerId = basket.BuyerId,
                 Items = basketItems,
             };
+        }
+
+        public string GetBuyerId()
+        {
+            var context = _httpContextAccessor.HttpContext;
+            var user = context.User;
+            var anonId = context.Request.Cookies[Constants.BASKET_COOKIE_NAME];
+            return user.FindFirstValue(ClaimTypes.NameIdentifier) ?? anonId;
         }
 
         public async Task<int> GetOrCreateBasketIdAsync()
@@ -111,6 +127,16 @@ namespace Web.Services
                     return newBuyerId;
                 }
             }
+        }
+
+        public async Task TransferBasketsAsync(string userId)
+        {
+            var context = _httpContextAccessor.HttpContext;
+            // Transfer Baskets
+            var anonId = context.Request.Cookies[Constants.BASKET_COOKIE_NAME];
+            if (!string.IsNullOrEmpty(anonId))
+                await _basketService.TransferBasketAsync(anonId, userId);
+            context.Response.Cookies.Delete(Constants.BASKET_COOKIE_NAME);
         }
     }
 }
