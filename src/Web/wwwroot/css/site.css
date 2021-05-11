@@ -99,3 +99,9 @@ body {
     font-size: .8rem;
     margin-bottom: .2rem;
 }
+
+/* Validation styles
+-------------------------------------------------- */
+.field-validation-error {
+    color: var(--danger);
+}
